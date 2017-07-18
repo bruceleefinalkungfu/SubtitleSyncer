@@ -1,1 +1,3 @@
-
+--Create Invoice--
+SupplierServiceImpl.java method getSupplierERPIds
+It fetches data from SIM. How it calls web services.
