@@ -1,3 +1,4 @@
+
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
@@ -43,33 +44,35 @@ public class ZinFile {
 	}
 	
 	public String getStringFromFile(String fileName) throws Exception{
-		stopAppendingFile(fileName);
+		saveAppendedFile(fileName);
 		return zinFileService.getStringFromFile(fileName);
 	}
 	
 	public List<String> getListOfStringLineFromFile(String fileName) throws Exception{
-		stopAppendingFile(fileName);
+		saveAppendedFile(fileName);
 		return zinFileService.getListOfStringLineFromFile(fileName);
 	}
 	
 	public byte[] getBytesOfFile(String fileName) throws Exception{
-		stopAppendingFile(fileName);
+		saveAppendedFile(fileName);
 		return zinFileService.getBytesOfFile(fileName);
 	}
 	
 	public void write(String fileName, byte[] arr) throws Exception{
-		stopAppendingFile(fileName);
+		saveAppendedFile(fileName);
 		zinFileService.write(fileName, arr);
 	}
 	public void write(String fileName, String toWrite) throws Exception{
-		stopAppendingFile(fileName);
+		saveAppendedFile(fileName);
 		zinFileService.write(fileName, toWrite);
 	}
 	public void write(String fileName, String[] toWriteArr) throws Exception{
-		stopAppendingFile(fileName);
+		saveAppendedFile(fileName);
 		zinFileService.write(fileName, toWriteArr);
 	}
 	/**
+	 * Call this method many times
+	 * but in the end call saveAppendedFile to save the file
 	 * @param fileName 
 	 * @param toWrite
 	 * @throws Exception 
@@ -79,10 +82,26 @@ public class ZinFile {
 		if(fileAppender==null){
 			fileAppender = new FileAppender(fileName);
 		}
-		zinFileService.append(fileAppender.printWriter, toWrite);
+		zinFileService.append(fileAppender, toWrite);
+	}
+	/**
+	 * Call this method many times
+	 * but in the end call saveAppendedFile to save the file
+	 * @param fileName
+	 * @param toWrite
+	 * @throws Exception
+	 */
+	public void appendln(String fileName, String toWrite) throws Exception{
+		append(fileName, toWrite+System.getProperty("line.separator"));
 	}
 	
-	private void stopAppendingFile(String fileName) throws Exception{
+	/**
+	 * This method MUST be called after you're done appending to a file
+	 * So file can be saved
+	 * @param fileName
+	 * @throws Exception
+	 */
+	public void saveAppendedFile(String fileName) throws Exception{
 		FileAppender fileAppender = fileAppenderMap.get(fileName);
 		if(fileAppender != null){
 			fileAppender.closeWriters();
@@ -178,8 +197,8 @@ public class ZinFile {
 				sb.append(s+"\n");
 			write(fileName, new String(sb));
 		}	
-		public void append(PrintWriter printWriter, String toWrite) throws Exception{
-			printWriter.print(toWrite);
+		public void append(FileAppender fileAppender, String toWrite) throws Exception{
+			fileAppender.printWriter.print(toWrite);
 		}	
 	}
 
@@ -197,9 +216,10 @@ public class ZinFile {
 			fileAppenderMap.put(fileName, this);
 		}
 		public void closeWriters() throws Exception{
-			if(fileWriter!=null) fileWriter.close();
-			if(bufferedWriter!=null) bufferedWriter.close();
+			// Close them in this order only
 			if(printWriter!= null) printWriter.close();
+			if(bufferedWriter!=null) bufferedWriter.close();
+			if(fileWriter!=null) fileWriter.close();
 			
 			fileAppenderMap.remove(fileName);
 		}
