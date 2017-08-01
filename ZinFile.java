@@ -7,6 +7,8 @@ import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.io.PrintWriter;
 import java.util.Base64;
 import java.util.HashMap;
@@ -56,6 +58,16 @@ public class ZinFile {
 	public byte[] getBytesOfFile(String fileName) throws Exception{
 		saveAppendedFile(fileName);
 		return zinFileService.getBytesOfFile(fileName);
+	}
+
+	public void writeObject(String fileName, Object obj) throws Exception{
+		saveAppendedFile(fileName);
+		zinFileService.writeObject(fileName, obj);
+	}
+	
+	public Object readObject(String fileName) throws Exception{
+		saveAppendedFile(fileName);
+		return zinFileService.readObject(fileName);
 	}
 	
 	public void write(String fileName, byte[] arr) throws Exception{
@@ -124,7 +136,22 @@ public class ZinFile {
 		private ZinFileService() {
 			// TODO Auto-generated constructor stub
 		}
-
+		
+		private void writeObject(String fileName, Object obj) throws Exception{
+			FileOutputStream fos = new FileOutputStream(fileName);
+			ObjectOutputStream oos = new ObjectOutputStream(fos);
+			oos.writeObject(obj);
+			oos.close();
+		}
+		
+		private Object readObject(String fileName) throws Exception{
+			FileInputStream fis = new FileInputStream(fileName);
+			ObjectInputStream ois = new ObjectInputStream(fis);
+			Object readObject = ois.readObject();
+			ois.close();
+			return readObject;
+		}
+		
 		private List<File> getAllFiles(File folder, String ... onlyFileFormatsAllowed){
 			List<File> files = new LinkedList<>();
 			File[] fileArr = folder.listFiles();
