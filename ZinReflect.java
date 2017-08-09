@@ -4,6 +4,7 @@ import java.lang.reflect.Field;
 
 
 public class ZinReflect {
+	
 	static public boolean isFieldStatic(Field field){
 		if (java.lang.reflect.Modifier.isStatic(field.getModifiers())) {
 	        return true;
@@ -11,8 +12,9 @@ public class ZinReflect {
 		return false;
 	}
 	
+
 	/**
-	 * write this in toString(), ZinReflect.printToString(this.getClass(), this);
+	 * write this in toString() ZinReflection.printToString(this.getClass(), this);
 	 * @param class1 : this.getClass()
 	 * @param obj : 'this' instance
 	 * @return
@@ -36,9 +38,13 @@ public class ZinReflect {
 				result.append( field.getName() );
 				result.append(": ");
 				//requires access to private field:
-				result.append( field.get( class1.cast(obj)) );
+				result.append(
+						field.get(castObject(class1, obj))
+						);
 			} catch ( IllegalAccessException ex ) {
 				System.out.println(ex);
+			} catch (Exception e) {
+				e.printStackTrace();
 			}
 			result.append(newLine);
 		}
@@ -46,7 +52,24 @@ public class ZinReflect {
 		return result.toString();
 	}
 	
+	public static <T> T castObject(Class<T> type, Object object) throws Exception{
+		/*
+		 * //--Following fails--
+		 * Object o = "A string";
+		 * --compile time can't convert from capture#1-of ? to String--
+		 * String strs = Class.forName("java.lang.String").cast(o);
+		 * -- remedy--
+		 * Class<String> strClass = (Class<String>) Class.forName("java.lang.String");
+		 * String str = strClass.cast(object);
+		 */
+		if(type.isInstance(object)){
+			return type.cast(object);
+		}
+		else{
+			throw new Exception("object "+object+" is not an instance of "+type);
+		}
+	}
+	
 	private static class ZinPrivate{
-		
 	}
 }
