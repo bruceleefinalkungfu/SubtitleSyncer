@@ -1,3 +1,15 @@
+package zin.file;
+
+import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.util.Base64;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -15,19 +27,44 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 
 public class ZinFile {
 	
 	private ZinFileService zinFileService;
 	// for every fileName, a fileAppender
 	// cuz when appending to a file, I don't wanna open and close a file again and again 
-	private Map<String, FileAppender> fileAppenderMap;
+	private static Map<String, FileAppender> fileAppenderMap;
 	
-	public ZinFile() {
-		zinFileService = new ZinFileService(); 
+	static{ 
 		fileAppenderMap = new HashMap<>();
 	}
 	
+	public ZinFile() {
+		zinFileService = new ZinFileService();
+	}
+	
+	
+	/**
+	 * @param fileName : file should be written in a properties file format
+	 * @return
+	 * @throws Exception
+	 */
+	public Properties getPropertiesObjectFromFile(String fileName) throws Exception{
+		saveAppendedFile(fileName);
+		return zinFileService.getPropertiesObjectFromFile(fileName);
+	}
+	
+	/**
+	 * Properties files are in a key, value format. get value from key
+	 * @param fileName
+	 * @param key
+	 * @return
+	 * @throws Exception
+	 */
+	public String getPropertiesFileValueFromKey(String fileName, String key) throws Exception{
+		return getPropertiesObjectFromFile(fileName).getProperty(key);
+	}
 	
 	/**
 	 * @param folderPath
@@ -226,7 +263,13 @@ public class ZinFile {
 		}	
 		public void append(FileAppender fileAppender, String toWrite) throws Exception{
 			fileAppender.printWriter.print(toWrite);
-		}	
+		}
+		public Properties getPropertiesObjectFromFile(String fileName) throws Exception{
+			Properties prop = new Properties();
+			InputStream input = new FileInputStream(fileName);
+			prop.load(input);
+			return prop;
+		}
 	}
 
 	private class FileAppender{
