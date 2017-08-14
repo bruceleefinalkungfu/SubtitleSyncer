@@ -88,14 +88,11 @@ public class ZinSerializer {
 		public static void deserializeAndCall(String fileName) throws Exception{
 			List<Object> objList = (List<Object>) zinFile.readObject(fileName);
 			Method method = deserializeMethod(objList);
-			List<ObjectToSerializeBO> objectToSerializeBOList = (List<ObjectToSerializeBO>) objList.get(1);
+			List<ObjectToSerializeBO> objectToSerializeBOList = (List<ObjectToSerializeBO>) objList.get(3);
 			Object[] methodParametersArr = getMethodParametersArray(objectToSerializeBOList);
 			
 			Class<?> classToBeInstantiated = (Class<?>)objList.get(0);
-			Statement statement = new Statement(classToBeInstantiated.newInstance(), method.getName(), methodParametersArr);
-			statement.execute();
-            // In case only 2 parameters
-			//method.invoke( classToBeInstantiated.newInstance(), objectToSerializeBOList.get(0).getObject(), objectToSerializeBOList.get(1).getObject());
+			ZinReflect.invokeMethod(classToBeInstantiated, method, methodParametersArr);
 		}
 		private static Method deserializeMethod(List<Object> objList) throws Exception{
 			Class<?> declaringClass = (Class<?>) objList.get(0);
