@@ -1,10 +1,10 @@
-package com.zycus.common.util;
+package zin.reflect;
 
+import java.beans.Statement;
 import java.lang.reflect.Field;
-
+import java.lang.reflect.Method;
 
 public class ZinReflect {
-	
 	static public boolean isFieldStatic(Field field){
 		if (java.lang.reflect.Modifier.isStatic(field.getModifiers())) {
 	        return true;
@@ -33,8 +33,8 @@ public class ZinReflect {
 				continue;
 			result.append("  ");
 			try {
-				String fieldTypeName = field.getType().getName();
-				result.append(fieldTypeName.substring(fieldTypeName.lastIndexOf(".")+1)+"  ");
+				String fieldTypeName = field.getType().getSimpleName();
+				result.append(fieldTypeName+"  ");
 				result.append( field.getName() );
 				result.append(": ");
 				//requires access to private field:
@@ -68,6 +68,20 @@ public class ZinReflect {
 		else{
 			throw new Exception("object "+object+" is not an instance of "+type);
 		}
+	}
+
+	public static void invokeMethod(Object classInstance, String methodName, Object[] methodParametersArr) throws Exception{
+		Statement statement = new Statement(classInstance, methodName, methodParametersArr);
+		statement.execute();
+	}
+	public static void invokeMethod(Class<?> classToBeInstantiated, String methodName, Object[] methodParametersArr) throws Exception{
+		invokeMethod(classToBeInstantiated.newInstance(), methodName, methodParametersArr);
+	}
+	public static void invokeMethod(Object classInstance, Method method, Object[] methodParametersArr) throws Exception{
+		invokeMethod(classInstance, method.getName(), methodParametersArr);
+	}
+	public static void invokeMethod(Class<?> classToBeInstantiated, Method method, Object[] methodParametersArr) throws Exception{
+		invokeMethod(classToBeInstantiated.newInstance(), method.getName(), methodParametersArr);
 	}
 	
 	private static class ZinPrivate{
