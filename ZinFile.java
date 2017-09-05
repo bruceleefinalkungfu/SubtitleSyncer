@@ -22,12 +22,16 @@ import java.io.InputStreamReader;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.PrintWriter;
+import java.net.URL;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+
+import com.gargoylesoftware.htmlunit.WebClient;
+import com.gargoylesoftware.htmlunit.html.HtmlPage;
 
 public class ZinFile {
 	
@@ -46,6 +50,7 @@ public class ZinFile {
 	
 	
 	/**
+	 * Not recommended to call this method if properties values can be changed at runtime
 	 * @param fileName : file should be written in a properties file format
 	 * @return
 	 * @throws Exception
@@ -157,7 +162,38 @@ public class ZinFile {
 		}
 	}
 
+	/** 
+	 * <pre>
+	 * WARNING: Not working. url always null
+	 * It'll search your file in all the classpaths entries and return its instance
+	 * You should use forward slash.
+	 * </pre> 
+	 * @param fileRelativePath : ex. "/com/path/to/file.txt"
+	 * @return
+	 * @throws Exception
+	 */
+	public File getFileInstanceFromClasspath(String fileRelativePath) throws Exception{
+		URL url = ZinFile.class.getResource(fileRelativePath);
+		// It was giving null all the time
+		// = ZinFile.class.getClassLoader().getResource(fileRelativePath);
+		
+		System.getProperty("java.class.path");
+		System.getProperty("user.dir");
+		File file = new File(url.toURI());
+		return file;
+	}
+	
 	public byte[] encodeFromByteToBCD(byte[] brr){
+	    try (final WebClient webClient = new WebClient()) {
+	        final HtmlPage page = webClient.getPage("http://htmlunit.sourceforge.net");
+	        System.out.println(page.getTitleText());
+
+	        final String pageAsXml = page.asXml();
+	        System.out.println("true="+pageAsXml.contains("<body class=\"composite\">"));
+
+	        final String pageAsText = page.asText();
+	        System.out.println(pageAsText);
+	    } catch(Exception e){}
 		return Base64.getEncoder().encode(brr);
 	}
 	
@@ -171,7 +207,6 @@ public class ZinFile {
 	private class ZinFileService{
 		// It doesn't matter if I choose it private or public cuz inheritance isn't involved
 		private ZinFileService() {
-			// TODO Auto-generated constructor stub
 		}
 		
 		private void writeObject(String fileName, Object obj) throws Exception{
@@ -266,7 +301,9 @@ public class ZinFile {
 		}
 		public Properties getPropertiesObjectFromFile(String fileName) throws Exception{
 			Properties prop = new Properties();
-			InputStream input = new FileInputStream(fileName);
+			// Getting file from the classPath. It'll EVEN look into E:\eproc\config\
+			InputStream input = this.getClass().getClassLoader()
+									.getResourceAsStream(fileName);//new FileInputStream(fileName);
 			prop.load(input);
 			return prop;
 		}
