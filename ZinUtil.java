@@ -7,6 +7,10 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
 
+import com.zycus.einvoice.master.authority.exception.UserException;
+import com.zycus.einvoice.workflow.bo.WorkflowNodeCriteriaProperty;
+import com.zycus.einvoice.workflow.util.WorkflowUtil;
+import com.zycus.eproc.reporting.event.ReportingInvoiceEvent;
 import com.zycus.workflow.actor.Actor;
 import com.zycus.workflow.actor.RoleActor;
 import com.zycus.workflow.actor.SelectableActor;
@@ -16,6 +20,7 @@ import com.zycus.workflow.actor.UserActor;
 import zin.file.ZinFile;
 import zin.file.ZinIO;
 import zin.file.ZinSerializer;
+import zin.reflect.ZinDynamicClassLoader;
 import zin.reflect.ZinReflect;
 
 public class ZinUtil {
@@ -24,6 +29,8 @@ public class ZinUtil {
 	private static ZinReflect reflect;
 	private static ZinFile zinFileService;
 	private static ZinIO zinIO = ZinIO.INSTANCE;
+	
+	private static final String PROJECT_DIR = System.getProperty("user.dir");
 	
 	private static final String DEFAULT_FILE_NAME = "zin.serlz"; 
 	
@@ -263,17 +270,52 @@ public class ZinUtil {
 		return null;
 	}
 	
-	public void changeServiceRequest(Object[] methodParams){
+	public static void changeServiceRequest(Object[] methodParams){
+	}
+	
+	public static void runDynamically(){
+		try {
+			String className = "zinData.ZinDynamicCaller";
+			String filePath = PROJECT_DIR+"\\zinData\\ZinDynamicCaller.java";
+			new ZinDynamicClassLoader(className, "callDynamically", null)
+			.runClassDynamically(new File(filePath));
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 	}
 
-	public static void handleRestService(String task){
+	public static File getFileInstanceFromClasspath(String fileRelativePath) throws Exception{
+		return zinFileService.getFileInstanceFromClasspath(fileRelativePath);
+	}
+
+	public static <T> List<T> arrayToList(T...t){
+		return Arrays.asList(t);
+	}
+	
+	public static void handleRestService(String task) throws Exception{
 		String fileName = DEFAULT_FILE_NAME;
+		//task="create";
 		if(task==null){
 			System.out.println("default file "+DEFAULT_FILE_NAME+" opened");
 		} else if(task.equals("create")){
 			System.out.println("create task");
 			fileName = input("enter file name");
+		} else if(task.equals("z")){
+			String tenantId = input("enter tenant");
+			String userId = input("enter userId");
+			WorkflowUtil.getUserActiveRolesIdList(tenantId, userId);
+		} else if(task.equals("zz")){
+			String tenantId = "9010062a-f20c-4ad0-af0e-e3384c234f21";
+			String userId = input("enter userId");
+			WorkflowUtil.getUserActiveRolesIdList(tenantId, userId);
 		}
 		deserializeAndCall(fileName);
+	}
+	public static void temp(){
+		String s = ReportingInvoiceEvent.INVOICE_APPROVAL_PENDING.name();
+		System.out.println(s);
+	}
+	public static void startup(){
+		write("eproc.log", "");
 	}
 }
