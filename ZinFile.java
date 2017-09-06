@@ -217,10 +217,20 @@ public class ZinFile {
 		}
 		
 		private Object readObject(String fileName) throws Exception{
-			FileInputStream fis = new FileInputStream(fileName);
-			ObjectInputStream ois = new ObjectInputStream(fis);
-			Object readObject = ois.readObject();
-			ois.close();
+			Object readObject = null;
+			ObjectInputStream ois = null;
+			FileInputStream fis = null;
+			try{
+				fis = new FileInputStream(fileName);
+				ois = new ObjectInputStream(fis);
+				readObject = ois.readObject();
+			} catch(Exception e){
+				throw e;
+			} finally{
+				// Close them in order
+				if(ois!=null) ois.close();
+				if(fis!=null) fis.close();
+			}
 			return readObject;
 		}
 		
@@ -324,6 +334,8 @@ public class ZinFile {
 		}
 		public void closeWriters() throws Exception{
 			// Close them in this order only
+			// if you close the fileWriter, printWriter will become null
+			// AND file will NOT BE saved
 			if(printWriter!= null) printWriter.close();
 			if(bufferedWriter!=null) bufferedWriter.close();
 			if(fileWriter!=null) fileWriter.close();
