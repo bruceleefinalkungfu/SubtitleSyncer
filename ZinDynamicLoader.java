@@ -10,6 +10,8 @@ import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
+
 import javax.tools.Diagnostic;
 import javax.tools.DiagnosticCollector;
 import javax.tools.JavaCompiler;
@@ -21,7 +23,7 @@ public class ZinDynamicClassLoader {
 
 	private static String DEFAULT_CLASS_NAME = "Zin.java";
 	
-	private String classDirectoryPath = "";
+	private static final String PROJECT_DIR = System.getProperty("user.dir");
 	
 	private String classToBeInstantiatedFullName;
 	private String methodName;
@@ -38,17 +40,11 @@ public class ZinDynamicClassLoader {
 		this.methodParametersArr = methodParametersArr;
 	}
 
-	public ZinDynamicClassLoader addClassDirectoryPath(String classDirectoryPath){
-		this.classDirectoryPath = classDirectoryPath;
-		return this;
-	}
-	
-	public static void runClassDynamically() throws Exception{
-		//runClassDynamically(DEFAULT_CLASS_NAME);
-	}
-
 	/**
 	 * <pre>
+	 * Usage:
+	 * new ZinDynamicClassLoader("testcompile.HelloWorld", "zin", null)
+	 * .runClassDynamically(new File(PROJECT_DIR+"\\testcompile\\HelloWorld.java"));
 	 * If I don't make methods like runClassDynamically(File, File...)
 	 * calling runClassDynamically() will result in a compile time error as ambiguous 
 	 * </pre>
@@ -57,15 +53,15 @@ public class ZinDynamicClassLoader {
 	 * @throws Exception
 	 */
 	public void runClassDynamically(final File supportingJavaFile, final File...supportingJavaFiles) throws Exception{
-		//zin(supportingJavaFiles);
 		runClassDynamically(classToBeInstantiatedFullName, methodName, methodParametersArr, supportingJavaFile, supportingJavaFiles);
 	}
 	
-	public void zin(File...supportingJavaFiles){
-		supportingJavaFiles = null;
-	}
-	
 	/**
+	 * <pre>
+	 * Usage:
+	 * new ZinDynamicClassLoader("testcompile.HelloWorld", "zin", null)
+	 * .runClassDynamically(new File(PROJECT_DIR+"\\testcompile\\HelloWorld.java"));
+	 * </pre>
 	 * @param classToBeInstantiatedFullName : "java.lang.String"
 	 * @param methodName : "substring"
 	 * @param methodParametersArr : new Object[] {0, 3}
@@ -100,7 +96,7 @@ public class ZinDynamicClassLoader {
 	            optionList, 
 	            null, 
 	            compilationUnit);
-            /* 
+            /** 
              * <pre>
              * Compilation Requirements
              * Following method task.call() compiles the class. This method should only be called once.
@@ -109,18 +105,12 @@ public class ZinDynamicClassLoader {
              */
 	        if (task.call()) {
 	        	ZinReflect.invokeMethod(classToBeInstantiatedFullName, methodName, methodParametersArr);
-	        	/*
-	        	String fileFullName = file.getAbsolutePath();
-	        	int lastIndex = fileFullName.lastIndexOf(".");
-	        	fileFullName = fileFullName.substring(0, lastIndex) + ".class";
-	        	File moveTheFile = new File(fileFullName);
-	        	Files.move(moveTheFile.toPath(), new File(classDirectoryPath).toPath());
-	        	//*/
 	        } else {
 	            for (Diagnostic<? extends JavaFileObject> diagnostic : diagnostics.getDiagnostics()) {
 	                System.out.format("Error on line %d in %s%n",
 	                        diagnostic.getLineNumber(),
 	                        diagnostic.getSource().toUri());
+	                System.out.println("error message ="+diagnostic.getMessage(Locale.ENGLISH));
 	            }
 	        }
 	        fileManager.close();
@@ -189,7 +179,7 @@ public class ZinDynamicClassLoader {
                 
 
     			new ZinDynamicClassLoader("testcompile.HelloWorld", "zin", null)
-    			.addClassDirectoryPath("E:\\eproc_kit\\eproc\\zinProj\\bin\\testcompile\\HelloWorld.class")
+    			//.addClassDirectoryPath("E:\\eproc_kit\\eproc\\zinProj\\bin\\testcompile\\HelloWorld.class")
     			.runClassDynamically(new File("E:\\eproc_kit\\eproc\\zinProj\\testcompile\\HelloWorld.java"));
                 
                 /** Compilation Requirements *********************************************************************************************/
