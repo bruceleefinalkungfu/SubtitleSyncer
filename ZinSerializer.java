@@ -5,6 +5,7 @@ import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 
+import zin.file.ZinSerializer.SerializedObjectBO;
 import zin.reflect.ZinReflect;
 
 public class ZinSerializer {
@@ -16,9 +17,9 @@ public class ZinSerializer {
 	public static ZinFile zinFile = new ZinFile();
 	
 	/**
-	 * ZinSerializer.serialize(new Object(){}.getClass().getEnclosingMethod(), 
-	 * 		Arrays.asList(new Class[]{workflowInstance.getClass(), userTaskNode.getClass()}),
-	 * 	 	Arrays.asList(new Object[]{workflowInstance, userTaskNode}));
+	 * ZinSerializer.serialize(new Object(){}.getClass().getEnclosingMethod(),
+	 * 			ZinIO.arrayToList(ServiceRequest.class, ServiceResponse.class),
+	 * 			ZinIO.arrayToList(serviceRequest, serviceResponse));
 	 * Object will be saved into className.methodName.serlz
 	 * @param method : new Object(){}.getClass().getEnclosingMethod()
 	 * @param classes : classes of each method parameters in correct order
@@ -30,9 +31,9 @@ public class ZinSerializer {
 	}
 	
 	/**
-	 * ZinSerializer.serialize("zin.serlz", new Object(){}.getClass().getEnclosingMethod(), 
-	 * 		Arrays.asList(new Class[]{workflowInstance.getClass(), userTaskNode.getClass()}),
-	 * 	 	Arrays.asList(new Object[]{workflowInstance, userTaskNode}));
+	 * ZinSerializer.serialize("zin.serlz", new Object(){}.getClass().getEnclosingMethod(),
+	 * 			ZinIO.arrayToList(ServiceRequest.class, ServiceResponse.class),
+	 * 			ZinIO.arrayToList(serviceRequest, serviceResponse));
 	 * @param fileName
 	 * @param method : new Object(){}.getClass().getEnclosingMethod()
 	 * @param classes : classes of each method parameters in correct order
@@ -48,6 +49,30 @@ public class ZinSerializer {
 			e.printStackTrace();
 		}
 	}
+	
+
+	/**
+	 * <pre>
+	 * Suppose Employee class doesn't implement Serializable
+	 * But all its fields Address address, String name, do
+	 * Then it will return a list of
+	 * 		SerializedObjectBO (Address.class, address)
+	 * 		SerializedObjectBO (String.class, name)
+	 * It's not completed yet
+	 * </pre>
+	 * @param type
+	 * @param value
+	 * @return
+	 */
+	public static List<SerializedObjectBO> getVariableListToSerialize(Class<?> type, Object value){
+		List<SerializedObjectBO> outputList = new ArrayList<>();
+		if(ZinReflect.doesClassImplementOrExtend(Serializable.class, type)){
+			outputList.add(new SerializedObjectBO(type, value));
+			return outputList;
+		}
+		return null;
+	}
+	
 	
 	/**
 	 * Use this method on only those files which are serialized by this class's method
