@@ -5,23 +5,30 @@ import java.io.File;
 import java.io.Serializable;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.lang.reflect.ParameterizedType;
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import zin.file.ZinSerializer.SerializedObjectBO;
 
+/**
+ * Bugs
+ * 1. CreditMemoEntity printToString doesn't show fields of AbstractInvoiceEntity
+ * @author anurag.awasthi
+ *
+ */
 public class ZinReflect {
 	
 	private static final Map<String, Boolean> CONSOLE_PRINTABLE_TYPES;
 	
-	private static final String NEW_LINE = System.getProperty("line.separator");
+	public static final String NEW_LINE = System.getProperty("line.separator");
 	
 	private static final String IDENTATION_STRING;
 	
@@ -29,7 +36,7 @@ public class ZinReflect {
 		// local variables which are destroyed later
 		int numberOfSpace = 4;
 		Class<?>[] printableTypes = {Integer.class, Double.class, Float.class, BigInteger.class, BigDecimal.class, int.class, double.class, float.class,
-							boolean.class, Boolean.class, String.class, StringBuilder.class, StringBuffer.class};
+							boolean.class, Boolean.class, String.class, StringBuilder.class, StringBuffer.class, Date.class};
 		
 		CONSOLE_PRINTABLE_TYPES = new HashMap<>();
 		for(Class<?> class1 : printableTypes){
@@ -58,16 +65,48 @@ public class ZinReflect {
 	 * @return
 	 * @throws Exception
 	 */
-	public static <T> T getPrivateFieldValue(Object instanceFromWhichYouWantPrivateField, Class<?> instanceClass, Class<T> fieldType, String fieldName) throws Exception{
+	public static <T> T getPrivateFieldValue(Class<?> instanceClass, Class<T> fieldType, String fieldName) throws Exception{
+		Object instanceOfClass = instanceClass.newInstance();
 		Field f = instanceClass.getDeclaredField(fieldName);
 		f.setAccessible(true);
-		return castObject(fieldType, f.get(instanceFromWhichYouWantPrivateField));
+		return castObject(fieldType, f.get(instanceOfClass));
 		//return (T) castObject(fieldType, f.get(castObject(instanceClass, instanceFromWhichYouWantPrivateField);));
+	}
+	
+	public static <T> void setPrivateFieldValue(Object instanceOfClass, Class<?> instanceClass, Class<T> fieldType, String fieldName, T fieldValue) throws Exception{
+		Field f = instanceClass.getDeclaredField(fieldName);
+		f.setAccessible(true);
+		f.set(instanceOfClass, fieldValue);
+	}
+	
+	/**
+	 * <pre>
+	 * There has to be at least one element in the list.
+	 * Or it returns null which you've to check
+	 * </pre>
+	 * @param list
+	 * @return
+	 * @throws Exception
+	 */
+	public static Class getListGenericTypeClass(List list){
+		if(list.size()>0)
+			return list.get(0).getClass();
+		else
+			return null;
+		/*
+		// Using this way you can only fetch type of Fields of class not local var of method
+		Field listField = classInstance.getDeclaredField(fieldName);
+        ParameterizedType listType = (ParameterizedType) listField.getGenericType();
+        Class<?> listClass = (Class<?>) listType.getActualTypeArguments()[0];
+        return listClass;
+        //*/
 	}
 
 	/**
-	 * Suppose you wanna check if class Zin implements Serializable
-	 * isClassImplementOrExtend(Serializable.class, Zin.class); 
+	 * <pre>
+	 * Suppose you wanna check if class ArrayList implements List
+	 * doesClassImplementOrExtend(ArrayList.class, List.class);
+	 * </pre> 
 	 * @param dadClassOrNot : class you wanna find out if it's superclass of your class or not
 	 * @param yourClass		: class you wanna check
 	 * @return
@@ -77,28 +116,7 @@ public class ZinReflect {
 	}
 	
 	/**
-	 * Suppose Employee class doesn't implement Serializable
-	 * But all its fields Address address, String name, do
-	 * Then it will return a list of
-	 * 		SerializedObjectBO (Address.class, address)
-	 * 		SerializedObjectBO (String.class, name)
-	 * It's not completed yet
-	 * @param type
-	 * @param value
-	 * @return
-	 */
-	public static List<SerializedObjectBO> getVariableListToSerialize(Class<?> type, Object value){
-		List<SerializedObjectBO> outputList = new ArrayList<>();
-		if(doesClassImplementOrExtend(Serializable.class, type)){
-			outputList.add(new SerializedObjectBO(type, value));
-			return outputList;
-		}
-		
-		return null;
-	}
-	
-	/**
-	 * write this in toString() ZinReflection.printToString(this.getClass(), this);
+	 * write this in toString() return ZinReflection.printToString(this.getClass(), this);
 	 * @param type : this.getClass()
 	 * @param value : 'this' instance
 	 * @return
@@ -148,6 +166,8 @@ public class ZinReflect {
 		URLClassLoader classLoader = null;
 		Class<?> loadedClass = null;
 		try{
+            // Create a new custom class loader, pointing to the directory that contains the compiled
+            // classes, this should point to the top of the package structure!
 			classLoader = new URLClassLoader(new URL[]{new File("./").toURI().toURL()});
 			loadedClass = classLoader.loadClass(classFullName);
 		} catch(Exception e){
@@ -159,9 +179,25 @@ public class ZinReflect {
 	}
 	
 	private static class ZinPrivate{
-		public static StringBuilder printToString(Class<?> type, Object value, String identation){
+		public static StringBuilder printToString(Class<?> type, List list, String identation){
 			StringBuilder result = new StringBuilder();
+			int size = list.size();
+			Class listGenericType = getListGenericTypeClass(list);
+			if(listGenericType == null) return new StringBuilder("null");
+			result.append(IDENTATION_STRING + identation + "[" + NEW_LINE);
+			for(int i=0 ; i<size ; i++){
+				result.append( ZinPrivate.printToString(listGenericType, list.get(i), identation) );
+				result.append(" ," + NEW_LINE);
+			}
+			return result;
+		}
+		public static StringBuilder printToString(Class<?> type, Object value, String identation){
+			if(value == null) return new StringBuilder("null");
+			if(isItList(type)){
+				return printToString(type, (List)value, identation);
+			}
 			
+			StringBuilder result = new StringBuilder();
 			result.append( "{" + NEW_LINE );
 			//determine fields declared in this class only (no fields of superclass)
 			Field[] fields = type.getDeclaredFields();
@@ -176,6 +212,7 @@ public class ZinReflect {
 					String fieldTypeName = field.getType().getSimpleName();
 					result.append( IDENTATION_STRING + identation );
 					result.append(fieldTypeName +" "+ field.getName() + ": ");
+					// Printing value
 					if(isFieldConsolePrintable(field.getType())){
 						result.append( field.get(castObject(type, value)) );
 					} else{
@@ -192,6 +229,11 @@ public class ZinReflect {
 			result.append(identation+"}");
 			return result;
 		}
+		
+		private static boolean isItList(Class<?> fieldType){
+			return doesClassImplementOrExtend(List.class, fieldType);
+		}
+		
 		private static boolean isFieldConsolePrintable(Class<?> fieldType){
 			return CONSOLE_PRINTABLE_TYPES.get(fieldType.getName()) != null;
 		}
