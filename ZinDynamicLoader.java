@@ -21,10 +21,6 @@ import javax.tools.ToolProvider;
 
 public class ZinDynamicClassLoader {
 
-	private static String DEFAULT_CLASS_NAME = "Zin.java";
-	
-	private static final String PROJECT_DIR = System.getProperty("user.dir");
-	
 	private String classToBeInstantiatedFullName;
 	private String methodName;
 	private Object[] methodParametersArr;
@@ -43,35 +39,34 @@ public class ZinDynamicClassLoader {
 	/**
 	 * <pre>
 	 * Usage:
-	 * new ZinDynamicClassLoader("testcompile.HelloWorld", "zin", null)
-	 * .runClassDynamically(new File(PROJECT_DIR+"\\testcompile\\HelloWorld.java"));
+	 * String className = "zinData.ZinDynamicCaller"; 
+	 * String filePath = PROJECT_DIR+"\\zinData\\ZinDynamicCaller.java"; 
+	 * new ZinDynamicClassLoader(className, "callDynamically", new Object[] {"someStringParameter"})
+	 * .runClassDynamically(new File(filePath));
+	 * 
 	 * If I don't make methods like runClassDynamically(File, File...)
 	 * calling runClassDynamically() will result in a compile time error as ambiguous 
 	 * </pre>
 	 * @param supportingJavaFile : There has to be at least one File to call this method
 	 * @param supportingJavaFiles
+	 * @return : returns the returned value if any. null in case of void methods
 	 * @throws Exception
 	 */
-	public void runClassDynamically(final File supportingJavaFile, final File...supportingJavaFiles) throws Exception{
-		runClassDynamically(classToBeInstantiatedFullName, methodName, methodParametersArr, supportingJavaFile, supportingJavaFiles);
+	public Object runClassDynamically(final File supportingJavaFile, final File...supportingJavaFiles) throws Exception{
+		return runClassDynamically(classToBeInstantiatedFullName, methodName, methodParametersArr, supportingJavaFile, supportingJavaFiles);
 	}
 	
 	/**
-	 * <pre>
-	 * Usage:
-	 * new ZinDynamicClassLoader("testcompile.HelloWorld", "zin", null)
-	 * .runClassDynamically(new File(PROJECT_DIR+"\\testcompile\\HelloWorld.java"));
-	 * </pre>
 	 * @param classToBeInstantiatedFullName : "java.lang.String"
 	 * @param methodName : "substring"
 	 * @param methodParametersArr : new Object[] {0, 3}
 	 * @param file : there has to be at least one file which you wanna compile and run
 	 * @param supportingJavaFiles : In this case, String class doesn't use any more classes than which already are in the classpath.
 	 * 	but you can add as many classes which are to be compiled as well. So classToBeInstantiatedFullName.methodName can use them
-	 * </pre>
+	 * @return : returns the returned value if any. null in case of void methods
 	 * @throws Exception
 	 */
-	public void runClassDynamically(String classToBeInstantiatedFullName, String methodName, Object[] methodParametersArr, File file, File...supportingJavaFiles) throws Exception{
+	public Object runClassDynamically(String classToBeInstantiatedFullName, String methodName, Object[] methodParametersArr, File file, File...supportingJavaFiles) throws Exception{
 		URLClassLoader classLoader = null;
 		try{
 			/** Compilation Requirements *********************************************************************************************/
@@ -104,7 +99,7 @@ public class ZinDynamicClassLoader {
              * </pre> 
              */
 	        if (task.call()) {
-	        	ZinReflect.invokeMethod(classToBeInstantiatedFullName, methodName, methodParametersArr);
+	        	return ZinReflect.invokeMethod(classToBeInstantiatedFullName, methodName, methodParametersArr);
 	        } else {
 	            for (Diagnostic<? extends JavaFileObject> diagnostic : diagnostics.getDiagnostics()) {
 	                System.out.format("Error on line %d in %s%n",
@@ -114,6 +109,7 @@ public class ZinDynamicClassLoader {
 	            }
 	        }
 	        fileManager.close();
+	        return null;
 		} catch(Exception e){
 			throw new Exception(e);
 		} finally{
@@ -122,13 +118,13 @@ public class ZinDynamicClassLoader {
 		}
 	}
 	
-	public void runClassDynamically(String classToBeInstantiatedFullName, String methodName, Object[] methodParametersArr, final String fileName, final String... fileNameArr) throws Exception{
+	public Object runClassDynamically(String classToBeInstantiatedFullName, String methodName, Object[] methodParametersArr, final String fileName, final String... fileNameArr) throws Exception{
 		int n = fileNameArr.length;
 		File[] files = new File[n];
 		for(int i=0 ; i<n ; i++){
 			files[i] = new File(fileNameArr[i]);
 		}
-		runClassDynamically(classToBeInstantiatedFullName, methodName, methodParametersArr, new File(fileName), files);
+		return runClassDynamically(classToBeInstantiatedFullName, methodName, methodParametersArr, new File(fileName), files);
 	}
 	
 	private static class ZinPrivate{
@@ -141,6 +137,11 @@ public class ZinDynamicClassLoader {
 			}
 		}
 		
+		/**
+		 * @param sourceArr : source Array
+		 * @param sourceElementCopyInTheEnd : source Element Copy In The End
+		 * @param destArr : dest array = sourceArr + sourceElementCopyInTheEnd
+		 */
 		private static <T> void copyArray(T[] sourceArr, T sourceElementCopyInTheEnd, T[] destArr){
 			// Error: Cannot create a generic array of T
 			// T[] tArr = new T[sourceArr.length];
@@ -151,93 +152,29 @@ public class ZinDynamicClassLoader {
 		}
 	}
 	
-    public static void main(String[] args) {
-        StringBuilder sb = new StringBuilder(64);
-        sb.append("package testcompile;\n");
-        sb.append("public class HelloWorld implements zin.reflect.ZinDynamicClassLoader.DoStuff {\n");
-        sb.append("    public void zin() {\n");
-        sb.append("        System.out.println(\"Zin method\");\n");
-        sb.append("    }\n");
-        sb.append("    public void doStuff() {\n");
-        sb.append("        System.out.println(\"Dynamnically written Hello world\");\n");
-        sb.append("    }\n");
-        sb.append("}\n");
 
-        File helloWorldJava = new File("testcompile/HelloWorld.java");
-        if (helloWorldJava.getParentFile().exists() || helloWorldJava.getParentFile().mkdirs()) {
+	public String getClassToBeInstantiatedFullName() {
+		return classToBeInstantiatedFullName;
+	}
 
-            try {
-                Writer writer = null;
-                try {
-                    writer = new FileWriter(helloWorldJava);
-                    writer.write(sb.toString());
-                    writer.flush();
-                } finally {
-                    if(writer!= null)
-                    	writer.close();
-                }
-                
+	public void setClassToBeInstantiatedFullName(String classToBeInstantiatedFullName) {
+		this.classToBeInstantiatedFullName = classToBeInstantiatedFullName;
+	}
 
-    			new ZinDynamicClassLoader("testcompile.HelloWorld", "zin", null)
-    			//.addClassDirectoryPath("E:\\eproc_kit\\eproc\\zinProj\\bin\\testcompile\\HelloWorld.class")
-    			.runClassDynamically(new File("E:\\eproc_kit\\eproc\\zinProj\\testcompile\\HelloWorld.java"));
-                
-                /** Compilation Requirements *********************************************************************************************/
-                DiagnosticCollector<JavaFileObject> diagnostics = new DiagnosticCollector<JavaFileObject>();
-                JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
-                StandardJavaFileManager fileManager = compiler.getStandardFileManager(diagnostics, null, null);
+	public String getMethodName() {
+		return methodName;
+	}
 
-                // This sets up the class path that the compiler will use.
-                // I've added the .jar file that contains the DoStuff interface within in it...
-                List<String> optionList = new ArrayList<String>();
-                optionList.add("-classpath");
-                optionList.add(System.getProperty("java.class.path") + ";./dist/zinProj.jar");
+	public void setMethodName(String methodName) {
+		this.methodName = methodName;
+	}
 
-                Iterable<? extends JavaFileObject> compilationUnit
-                        = fileManager.getJavaFileObjectsFromFiles(Arrays.asList(helloWorldJava));
-                JavaCompiler.CompilationTask task = compiler.getTask(
-                    null, 
-                    fileManager, 
-                    diagnostics, 
-                    optionList, 
-                    null, 
-                    compilationUnit);
-                if (task.call()) {
-    	        	ZinReflect.invokeMethod("testcompile.HelloWorld", "doStuff", null);
-                    /** Load and execute *************************************************************************************************/
-                    System.out.println("Yipe");
-                    // Create a new custom class loader, pointing to the directory that contains the compiled
-                    // classes, this should point to the top of the package structure!
-                    URLClassLoader classLoader = new URLClassLoader(new URL[]{new File("./").toURI().toURL()});
-                    // Load the class from the classloader by name....
-                    Class<?> loadedClass = classLoader.loadClass("testcompile.HelloWorld");
-                    // Create a new instance...
-                    Object obj = loadedClass.newInstance();
-                    // Santity check
-                    if (obj instanceof DoStuff) {
-                        // Cast to the DoStuff interface
-                        DoStuff stuffToDo = (DoStuff)obj;
-                        // Run it baby
-                        stuffToDo.doStuff();
-                    }
-                    /************************************************************************************************* Load and execute **/
-                } else {
-                    for (Diagnostic<? extends JavaFileObject> diagnostic : diagnostics.getDiagnostics()) {
-                        System.out.format("Error on line %d in %s%n",
-                                diagnostic.getLineNumber(),
-                                diagnostic.getSource().toUri());
-                    }
-                }
-                fileManager.close();
-            } catch (Exception exp) {
-                exp.printStackTrace();
-            }
-        }
-    }
+	public Object[] getMethodParametersArr() {
+		return methodParametersArr;
+	}
 
-    public static interface DoStuff {
-
-        public void doStuff();
-    }
+	public void setMethodParametersArr(Object[] methodParametersArr) {
+		this.methodParametersArr = methodParametersArr;
+	}
 
 }
