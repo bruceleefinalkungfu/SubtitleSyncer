@@ -1,5 +1,6 @@
 package zin.reflect;
 
+import java.beans.Expression;
 import java.beans.Statement;
 import java.io.File;
 import java.io.Serializable;
@@ -21,6 +22,8 @@ import zin.file.ZinSerializer.SerializedObjectBO;
 /**
  * Bugs
  * 1. CreditMemoEntity printToString doesn't show fields of AbstractInvoiceEntity
+ * 2. printToString fails on recursive nesting.
+ * 		class A { BObj b; } class B { A aObj; } 
  * @author anurag.awasthi
  *
  */
@@ -144,21 +147,54 @@ public class ZinReflect {
 		}
 	}
 
-	public static void invokeMethod(Object classInstance, String methodName, Object[] methodParametersArr) throws Exception{
+	/**
+	 * @param classInstance 
+	 * @param methodName
+	 * @param methodParametersArr
+	 * @return 
+	 * @throws Exception
+	 */
+	public static Object invokeMethod(Object classInstance, String methodName, Object[] methodParametersArr) throws Exception{
+		/**
+		 * unlike public Object Method.invoke(Object obj, Object... args) 
+		 * this facility has not been adapted to support varargs parameters, 
+		 * so you have to create a parameter array manually.
+		 * AND
+		 * it only works for public methods.
+		 * The reason WE used STATEMENT instead of Method because I wanted methodParametersArr in an array
+		 * Although it DOESN'T RETURN value.
+		 */
+		/*
 		Statement statement = new Statement(classInstance, methodName, methodParametersArr);
 		statement.execute();
+		//*/
+		/**
+		 * We are using Expressions because we want the return value
+		 */
+		Expression expression = new Expression(classInstance, methodName, methodParametersArr);
+		/**
+		 * Calling execute, sets the 'value' field/property of Expression instance to the returned value
+		 * if return type was void, 'value' is set to null.
+		 */
+		expression.execute();
+		/**
+		 * 'value' by default is set to some unique value as an indication that expression is not executed yet
+		 * if getValue() is called and value is that unique then it executes/invoke the method
+		 * and saves the returned value in 'value' field and returns it.
+		 */
+		return expression.getValue();
 	}
-	public static void invokeMethod(Object classInstance, Method method, Object[] methodParametersArr) throws Exception{
-		invokeMethod(classInstance, method.getName(), methodParametersArr);
+	public static Object invokeMethod(Object classInstance, Method method, Object[] methodParametersArr) throws Exception{
+		return invokeMethod(classInstance, method.getName(), methodParametersArr);
 	}
-	public static void invokeMethod(Class<?> classToBeInstantiated, String methodName, Object[] methodParametersArr) throws Exception{
-		invokeMethod(classToBeInstantiated.newInstance(), methodName, methodParametersArr);
+	public static Object invokeMethod(Class<?> classToBeInstantiated, String methodName, Object[] methodParametersArr) throws Exception{
+		return invokeMethod(classToBeInstantiated.newInstance(), methodName, methodParametersArr);
 	}
-	public static void invokeMethod(Class<?> classToBeInstantiated, Method method, Object[] methodParametersArr) throws Exception{
-		invokeMethod(classToBeInstantiated.newInstance(), method.getName(), methodParametersArr);
+	public static Object invokeMethod(Class<?> classToBeInstantiated, Method method, Object[] methodParametersArr) throws Exception{
+		return invokeMethod(classToBeInstantiated.newInstance(), method.getName(), methodParametersArr);
 	}
-	public static void invokeMethod(String classFullName, String methodName, Object[] methodParametersArr) throws Exception{
-		invokeMethod(getClassInstanceFromFullName(classFullName).newInstance(), methodName, methodParametersArr);
+	public static Object invokeMethod(String classFullName, String methodName, Object[] methodParametersArr) throws Exception{
+		return invokeMethod(getClassInstanceFromFullName(classFullName).newInstance(), methodName, methodParametersArr);
 	}
 	public static Class<?> getClassInstanceFromFullName(String classFullName) throws Exception{
 		// Class.forName() loads and initializes the class.
