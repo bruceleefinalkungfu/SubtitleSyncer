@@ -25,9 +25,9 @@ public class ZinSerializer {
 	 * @param classes : classes of each method parameters in correct order
 	 * @param objList : All the method parameters in correct order
 	 */
-	public static void serialize(Method method, List<Class> classes, List<Object> objList){
+	public static void serializeMethodAndParameters(Method method, List<Class> classes, List<Object> objList){
 		String fileName = method.getDeclaringClass().getSimpleName()+"."+method.getName()+DEFAULT_FILE_FORMAT;
-		serialize(fileName, method, classes, objList);
+		serializeMethodAndParameters(fileName, method, classes, objList);
 	}
 	
 	/**
@@ -39,11 +39,11 @@ public class ZinSerializer {
 	 * @param classes : classes of each method parameters in correct order
 	 * @param objList : All the method parameters in correct order
 	 */
-	public static void serialize(String fileName, Method method, List<Class> classes, List<Object> objList){
+	public static void serializeMethodAndParameters(String fileName, Method method, List<Class> classes, List<Object> objList){
 		try {
 			String shouldSerialize = zinFile.getPropertiesFileValueFromKey("zin.properties", "shouldSerialize");
 			if(shouldSerialize.equals("true")){
-				ZinPrivate.serialize(fileName+DEFAULT_FILE_FORMAT, method, classes, objList);
+				ZinPrivate.serializeMethodAndParameters(fileName+DEFAULT_FILE_FORMAT, method, classes, objList);
 			}
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -78,9 +78,9 @@ public class ZinSerializer {
 	 * Use this method on only those files which are serialized by this class's method
 	 * @param fileName
 	 */
-	public static void deserializeAndCall(String fileName){
+	public static void deserializeMethodAndParametersAndCall(String fileName){
 		try{
-			ZinPrivate.deserializeAndCall(fileName);
+			ZinPrivate.deserializeMethodAndParametersAndCall(fileName);
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -103,7 +103,7 @@ public class ZinSerializer {
 
 	
 	private static class ZinPrivate{
-		public static void serialize(String fileName, Method method, List<Class> classes, List<Object> objList) throws Exception{
+		public static void serializeMethodAndParameters(String fileName, Method method, List<Class> classes, List<Object> objList) throws Exception{
 			int size = classes.size();
 			List<SerializedObjectBO> objectToSerializedBOList = new ArrayList<ZinSerializer.SerializedObjectBO>();
 			for(int i=0 ; i<size ; i++){
@@ -117,7 +117,7 @@ public class ZinSerializer {
 			zinFile.writeObject(fileName, objectListToWrite);
 		}
 		@SuppressWarnings("unchecked")
-		public static void deserializeAndCall(String fileName) throws Exception{
+		public static void deserializeMethodAndParametersAndCall(String fileName) throws Exception{
 			List<Object> objList = (List<Object>) zinFile.readObject(fileName);
 			Method method = deserializeMethod(objList);
 			List<SerializedObjectBO> objectToSerializeBOList = (List<SerializedObjectBO>) objList.get(3);
