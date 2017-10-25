@@ -1,4 +1,5 @@
 
+// Added comment here as well
 public class ZinTest {
 	private ZinFile zinFile = new ZinFile();
 	FileModifier fileModifier = new FileModifier();
