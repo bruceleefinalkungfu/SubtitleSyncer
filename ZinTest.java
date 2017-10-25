@@ -1,6 +1,6 @@
 
 public class ZinTest {
-	ZinFile zinFile = new ZinFile();
+	private ZinFile zinFile = new ZinFile();
 	FileModifier fileModifier = new FileModifier();
 	public static void main(String [] args) {
 		try{
