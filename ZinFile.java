@@ -408,10 +408,13 @@ public class ZinFile {
 		private File getFileFromAbsolutePath(String absolutePath){
 			File f = new File(absolutePath);
 			/**
-			 * if(f.exists()) returned false for "\\abc_dir\\file_that_exists.txt"
-			 * if(f.exists()) returned false for "C:\\abc_dir\\..\\xyz\\..\\abc\\file_that_exists.txt"
-			 * hence I used f.getAbsoluteFile().exists()
-			 * 
+			 * if(f.exists()) returned false for "\\abc_dir\\zinBuild.xml"
+			 * if(f.exists()) returned false for "C:\\abc_dir\\..\\xyz\\..\\abc\\zinBuild.xml"
+			 * hence I used 
+			 * 		f.getAbsoluteFile().exists()
+			 * 		f.getCanonicalFile().exists()
+			 * it returned false in both cases, probably because file was open.
+			 * 	RCA-Unknown as of yet
 			 */
 			if(f.getAbsoluteFile().exists())
 				return f;
