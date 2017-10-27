@@ -1,56 +1,65 @@
 package zin.file;
 
-import java.io.BufferedReader;
-import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
-import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.util.Base64;
-
-import java.io.BufferedReader;
 import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.FileWriter;
-import java.io.InputStream;
-import java.io.InputStreamReader;
+import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.PrintWriter;
+import java.net.URISyntaxException;
 import java.net.URL;
-import java.util.Base64;
+import java.nio.charset.Charset;
+import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
 
-import com.gargoylesoftware.htmlunit.WebClient;
-import com.gargoylesoftware.htmlunit.html.HtmlPage;
+import org.apache.commons.io.Charsets;
+import org.apache.commons.io.FileUtils;
 
+import zin.tools.ZinConstant;
+import zin.tools.ZinConstant.OperatingSystem;
+
+/**
+ * Bug
+ * 	-getBytesOfFile doesn't work for large file having more bytes than Integer.MAX_VALUE
+ * 	-close FileInputStream
+ * @author anurag.awasthi
+ *
+ */
 public class ZinFile {
+	
+	private static final String			DEFAULT_ENCODING 				=			"ASCII";
+	private static final Charset 		DEFAULT_CHARSET_ENCODING		=			Charsets.toCharset(DEFAULT_ENCODING);
 	
 	private ZinFileService zinFileService;
 	// for every fileName, a fileAppender
 	// cuz when appending to a file, I don't wanna open and close a file again and again 
 	private static Map<String, FileAppender> fileAppenderMap;
 	
+	private final ZinPrivate zinPrivate;
+	
 	static{ 
 		fileAppenderMap = new HashMap<>();
 	}
 	
 	public ZinFile() {
+		zinPrivate = new ZinPrivate();
 		zinFileService = new ZinFileService();
 	}
 	
 	
 	/**
-	 * Not recommended to call this method if properties values can be changed at runtime
+	 * <pre>
+	 * </pre>
 	 * @param fileName : file should be written in a properties file format
 	 * @return
 	 * @throws Exception
@@ -61,7 +70,9 @@ public class ZinFile {
 	}
 	
 	/**
+	 * <pre>
 	 * Properties files are in a key, value format. get value from key
+	 * </pre>
 	 * @param fileName
 	 * @param key
 	 * @return
@@ -71,37 +82,82 @@ public class ZinFile {
 		return getPropertiesObjectFromFile(fileName).getProperty(key);
 	}
 	
+
+	public Map<String, String> getValueKeyMapFromPropertiesFile(String propertiesFileName) throws Exception{
+		Properties prop = getPropertiesObjectFromFile(propertiesFileName);
+		Map<String, String> reverseMap = new HashMap<>();
+		Set<Object> set = prop.keySet();
+		for(Object o : set){
+			String key = (String) o;
+			reverseMap.put(prop.getProperty(key), key);
+		}
+		return reverseMap;
+	}
+	
+	public Map<String, String> getKeyValueMapFromPropertiesFile(String propertiesFileName) throws Exception{
+		Properties prop = getPropertiesObjectFromFile(propertiesFileName);
+		Map<String, String> reverseMap = new HashMap<>();
+		Set<Object> set = prop.keySet();
+		for(Object o : set){
+			String key = (String) o;
+			reverseMap.put(key, prop.getProperty(key));
+		}
+		return reverseMap;
+	}
+	
 	/**
-	 * @param folderPath
-	 * @param onlyFileFormatsAllowed : like ".java", ".XML". Leave blank if all files allowed
+	 * @param directoryPath
+	 * @param onlyFileFormatsAllowed : ".java", ".XML". Leave blank if all files allowed
 	 * @return
 	 */
-	public List<File> getAllFiles(String folderPath, String ... onlyFileFormatsAllowed) throws Exception{
-		File folder = new File(folderPath);
+	public List<File> getAllFiles(String directoryPath, String ... onlyFileFormatsAllowed) throws Exception{
+		File folder = getFileFromFileName(directoryPath);
 		if(!folder.exists() || !folder.isDirectory()){
-			throw new Exception("folder either doesn't exist or not a directory");
+			throw new Exception("directory either doesn't exist or not a directory");
 		}
 		for(int i=0 ; i<onlyFileFormatsAllowed.length ; i++){
 			onlyFileFormatsAllowed[i] = onlyFileFormatsAllowed[i].toLowerCase();
 		}
 		return zinFileService.getAllFiles(folder, onlyFileFormatsAllowed);
 	}
-	
+
 	public String getStringFromFile(String fileName) throws Exception{
-		saveAppendedFile(fileName);
-		return zinFileService.getStringFromFile(fileName);
+		return getStringFromFile(fileName, DEFAULT_CHARSET_ENCODING);
 	}
-	
-	public List<String> getListOfStringLineFromFile(String fileName) throws Exception{
+	public String getStringFromFile(String fileName, String encoding) throws Exception{
 		saveAppendedFile(fileName);
-		return zinFileService.getListOfStringLineFromFile(fileName);
+		return getStringFromFile(fileName, Charsets.toCharset(encoding));
 	}
-	
-	public byte[] getBytesOfFile(String fileName) throws Exception{
+	/**
+	 * <pre>
+	 * It returns null if file doesn't exist in classpath nor in absolute path
+	 * </pre>
+	 * @param fileName
+	 * @param encoding
+	 * @return
+	 * @throws Exception
+	 */
+	public String getStringFromFile(String fileName, Charset encoding) throws Exception{
 		saveAppendedFile(fileName);
-		return zinFileService.getBytesOfFile(fileName);
+		return zinFileService.getStringFromFile(getFileFromFileName(fileName), encoding);
 	}
 
+	public List<String> getListOfStringLineFromFile(String fileName) throws Exception{
+		return getListOfStringLineFromFile(fileName, DEFAULT_CHARSET_ENCODING);
+	}
+	public List<String> getListOfStringLineFromFile(String fileName, String encoding) throws Exception{
+		return getListOfStringLineFromFile(fileName, Charsets.toCharset(encoding));
+	}
+	public List<String> getListOfStringLineFromFile(String fileName, Charset encoding) throws Exception{
+		saveAppendedFile(fileName);
+		return zinFileService.getListOfStringLineFromFile(getFileFromFileName(fileName), encoding);
+	}
+
+	public byte[] getBytesOfFile(String fileName) throws Exception{
+		saveAppendedFile(fileName);
+		return zinFileService.getBytesOfFile(getFileFromFileName(fileName));
+	}
+	
 	public void writeObject(String fileName, Object obj) throws Exception{
 		saveAppendedFile(fileName);
 		zinFileService.writeObject(fileName, obj);
@@ -114,19 +170,29 @@ public class ZinFile {
 	
 	public void write(String fileName, byte[] arr) throws Exception{
 		saveAppendedFile(fileName);
-		zinFileService.write(fileName, arr);
+		zinFileService.write(getFileFromFileName(fileName), arr);
 	}
+
 	public void write(String fileName, String toWrite) throws Exception{
-		saveAppendedFile(fileName);
-		zinFileService.write(fileName, toWrite);
+		write(fileName, toWrite, DEFAULT_CHARSET_ENCODING);
 	}
-	public void write(String fileName, String[] toWriteArr) throws Exception{
-		saveAppendedFile(fileName);
-		zinFileService.write(fileName, toWriteArr);
+	public void write(String fileName, String toWrite, String encoding) throws Exception{
+		write(fileName, toWrite, Charsets.toCharset(encoding));
 	}
+	public void write(String fileName, String toWrite, Charset encoding) throws Exception{
+		saveAppendedFile(fileName);
+		zinFileService.write(getFileIfDoesNotexistCreateIt(fileName), toWrite, encoding);
+	}
+
+	public void createFile(String filePathRelativeOrAbsolute) throws IOException{
+		zinFileService.createFile(filePathRelativeOrAbsolute);
+	}
+
 	/**
+	 * <pre>
 	 * Call this method many times
 	 * but in the end call saveAppendedFile to save the file
+	 * </pre>
 	 * @param fileName 
 	 * @param toWrite
 	 * @throws Exception 
@@ -139,7 +205,10 @@ public class ZinFile {
 		zinFileService.append(fileAppender, toWrite);
 	}
 	/**
+	 * <pre>
 	 * Call this method many times
+	 * but in the end call saveAppendedFile to save the file
+	 * </pre>
 	 * but in the end call saveAppendedFile to save the file
 	 * @param fileName
 	 * @param toWrite
@@ -150,8 +219,10 @@ public class ZinFile {
 	}
 	
 	/**
+	 * <pre>
 	 * This method MUST be called after you're done appending to a file
-	 * So file can be saved
+	 * So file can be saved, otherwise File won't be saved
+	 * </pre>
 	 * @param fileName
 	 * @throws Exception
 	 */
@@ -161,52 +232,74 @@ public class ZinFile {
 			fileAppender.closeWriters();
 		}
 	}
-
-	/** 
+	
+	/**
 	 * <pre>
-	 * WARNING: Not working. url always null
-	 * It'll search your file in all the classpaths entries and return its instance
-	 * You should use forward slash.
-	 * </pre> 
-	 * @param fileRelativePath : ex. "/com/path/to/file.txt"
+	 * Use this method when you have to append the file only once
+	 * </pre>
+	 * @param fileName
+	 * @param toWrite
+	 * @throws Exception
+	 */
+	public void appendOnlyOnce(String fileName, String toWrite) throws Exception{
+		append(fileName, toWrite);
+		saveAppendedFile(fileName);
+	}
+	
+	public File getFileIfDoesNotexistCreateIt(String filePathRelativeOrAbsolute) throws Exception{
+		File f = getFileFromFileName(filePathRelativeOrAbsolute);
+		if(f == null)
+			createFile(filePathRelativeOrAbsolute);
+		return getFileFromFileName(filePathRelativeOrAbsolute);
+	}
+	
+	/**
+	 * <pre>
+	 * It'll first try to get file from absolute path
+	 * If fails it will look for relative path in all classpaths
+	 * If fails to get file from classpaths as well, it returns null
+	 * </pre>
+	 * @param filePathRelativeOrAbsolute
+	 * @return
+	 * @throws URISyntaxException 
+	 */
+	public File getFileFromFileName(String filePathRelativeOrAbsolute) throws URISyntaxException{
+		if(isFilePathAbsolute(filePathRelativeOrAbsolute)){
+			File absoluteFile = zinFileService.getFileFromAbsolutePath(filePathRelativeOrAbsolute);
+			return absoluteFile;
+		}
+		return zinFileService.getFileInstanceFromClasspath(filePathRelativeOrAbsolute);
+	}
+	
+	public boolean isFilePathAbsolute(String filePath){
+		if(ZinConstant.OS == OperatingSystem.WINDOWS)
+			return filePath.contains(":");
+		else
+			throw new Error("set value for linux or whatever your os is");
+	}
+	
+	/**
+	 * <pre>
+	 * It checks for absolutePath if fails then in relative paths 
+	 * </pre>
+	 * @param filePathRelativeOrAbsolute
 	 * @return
 	 * @throws Exception
 	 */
-	public File getFileInstanceFromClasspath(String fileRelativePath) throws Exception{
-		URL url = ZinFile.class.getResource(fileRelativePath);
-		// It was giving null all the time
-		// = ZinFile.class.getClassLoader().getResource(fileRelativePath);
-		
-		System.getProperty("java.class.path");
-		System.getProperty("user.dir");
-		File file = new File(url.toURI());
-		return file;
+	public InputStream getInputStreamFromFileName(String filePathRelativeOrAbsolute) throws Exception{
+		InputStream in = zinFileService.getInputStreamFromAbsolutePath(filePathRelativeOrAbsolute);
+		if( in != null)
+			return in;
+		return zinFileService.getInputStreamFromClasspath(filePathRelativeOrAbsolute);
 	}
 	
-	public byte[] encodeFromByteToBCD(byte[] brr){
-	    try (final WebClient webClient = new WebClient()) {
-	        final HtmlPage page = webClient.getPage("http://htmlunit.sourceforge.net");
-	        System.out.println(page.getTitleText());
-
-	        final String pageAsXml = page.asXml();
-	        System.out.println("true="+pageAsXml.contains("<body class=\"composite\">"));
-
-	        final String pageAsText = page.asText();
-	        System.out.println(pageAsText);
-	    } catch(Exception e){}
-		return Base64.getEncoder().encode(brr);
-	}
-	
-	public byte[] decodeFromBCDToByte(byte[] arr){
-		return Base64.getDecoder().decode(arr);
-	}
-	
-	// all the processing is done in these methods here
-	// before that was just preprocessing
-	// class is private so its instance can't be created outside of this class
 	private class ZinFileService{
 		// It doesn't matter if I choose it private or public cuz inheritance isn't involved
 		private ZinFileService() {
+		}
+		
+		public void createFile(String filePathRelativeOrAbsolute) throws IOException{
+			FileUtils.touch(new File(filePathRelativeOrAbsolute));
 		}
 		
 		private void writeObject(String fileName, Object obj) throws Exception{
@@ -248,6 +341,7 @@ public class ZinFile {
 			return files;
 		}
 		private boolean isFileOfAllowedFormats(File f, String...arr){
+			if(arr.length == 0) return true;
 			String fileName = f.getName().toLowerCase();
 			for(String s : arr){
 				if(fileName.endsWith(s))
@@ -256,66 +350,84 @@ public class ZinFile {
 			return false;
 		}
 		
-		public String getStringFromFile(String fileName) throws Exception{
-			InputStream is = new FileInputStream(fileName);
-			BufferedReader buf = new BufferedReader(new InputStreamReader(is));
-			String line = buf.readLine(); StringBuilder sb = new StringBuilder();
-			while(line != null){ 
-				sb.append(line).append("\n"); 
-				line = buf.readLine(); 
-			} 
-			String fileAsString = sb.toString();
-			return fileAsString;
+		public String getStringFromFile(final File file, final Charset encoding) throws IOException{
+			if(file == null)
+				return null;
+			return FileUtils.readFileToString(file, encoding);
 		}
 
-		public List<String> getListOfStringLineFromFile(String fileName) throws Exception{
-			List<String> outputList = new LinkedList<>();
-			int count = 0;
-			InputStream is = new FileInputStream(fileName);
-			BufferedReader buf = new BufferedReader(new InputStreamReader(is));
-			String line = buf.readLine();
-			StringBuilder sb = new StringBuilder();
-			while(line != null){
-				outputList.add(line);
-				line = buf.readLine();
-			}
-			return outputList;
+		public List<String> getListOfStringLineFromFile(final File file, final Charset encoding) throws Exception{
+			return FileUtils.readLines(file, encoding);
+		}
+
+		public byte[] getBytesOfFile(File file) throws Exception{
+			return FileUtils.readFileToByteArray(file);
 		}
 		
-		public byte[] getBytesOfFile(String fileName) throws Exception{
-			File f = new File(fileName);
-			int byteLength = (int) f.length();
-			byte[] arr = new byte[byteLength];
-			FileInputStream is = new FileInputStream(fileName);
-			is.read(arr, 0, byteLength);
-			return arr;
+		public void write(final File file, final byte[] arr) throws Exception{
+			FileUtils.writeByteArrayToFile(file, arr);
 		}
-		public void write(String fileName, byte[] arr) throws Exception{
-			FileOutputStream fout = new FileOutputStream(fileName);
-			fout.write(arr);
-			fout.close();
+		public void write(File file, String toWrite, Charset encoding) throws Exception{
+			/**
+			 * 	Method I used earlier
+			 *	try(  PrintWriter out = new PrintWriter(fileName)){
+			 *		out.println( toWrite );
+			 *	}
+			 * 
+			*/
+			FileUtils.write(file, toWrite, encoding);
 		}
-		public void write(String fileName, String toWrite) throws Exception{
-			try(  PrintWriter out = new PrintWriter(fileName)){
-				out.println( toWrite );
-			}
-		}
-		public void write(String fileName, String[] toWriteArr) throws Exception{
-			StringBuilder sb = new StringBuilder();
-			for(String s : toWriteArr)
-				sb.append(s+"\n");
-			write(fileName, new String(sb));
-		}	
 		public void append(FileAppender fileAppender, String toWrite) throws Exception{
 			fileAppender.printWriter.print(toWrite);
 		}
 		public Properties getPropertiesObjectFromFile(String fileName) throws Exception{
 			Properties prop = new Properties();
-			// Getting file from the classPath. It'll EVEN look into E:\eproc\config\
-			InputStream input = this.getClass().getClassLoader()
-									.getResourceAsStream(fileName);//new FileInputStream(fileName);
-			prop.load(input);
+			InputStream in = getInputStreamFromFileName(fileName);
+			prop.load(in);
+			in.close();
 			return prop;
+		}
+
+		private File getFileInstanceFromClasspath(String fileRelativePath) throws URISyntaxException {
+			/*
+			 * URL was and still is giving null all the time
+			 * URL url = this.getClass().getResource(fileRelativePath);
+			 */
+			/** --Both following methods work now but Searching 'weka.jar' was giving NULL
+			 * 		because lib wasn't in the classPath, but weka.jar itself was
+			 * URL url = ZinFile.class.getClassLoader().getResource(fileRelativePath);
+			 * URL url = Thread.currentThread().getContextClassLoader().getResource( fileRelativePath );
+			 */
+			URL url = Thread.currentThread().getContextClassLoader().getResource( fileRelativePath );
+			if(url == null)
+				return null;
+			File file = new File(url.toURI());
+			return file;
+		}
+		
+		private File getFileFromAbsolutePath(String absolutePath){
+			File f = new File(absolutePath);
+			/**
+			 * if(f.exists()) returned false for "\\abc_dir\\file_that_exists.txt"
+			 * if(f.exists()) returned false for "C:\\abc_dir\\..\\xyz\\..\\abc\\file_that_exists.txt"
+			 * hence I used f.getAbsoluteFile().exists()
+			 * 
+			 */
+			if(f.getAbsoluteFile().exists())
+				return f;
+			return null;
+		}
+		private InputStream getInputStreamFromAbsolutePath(String absolutePath){
+			try{
+				InputStream in = new FileInputStream(absolutePath);
+				return in;
+			} catch(FileNotFoundException e){
+				return null;
+			}
+		}
+
+		private InputStream getInputStreamFromClasspath(String fileRelativePath) throws Exception{
+			return Thread.currentThread().getContextClassLoader().getResourceAsStream(fileRelativePath);
 		}
 	}
 
@@ -341,6 +453,11 @@ public class ZinFile {
 			if(fileWriter!=null) fileWriter.close();
 			
 			fileAppenderMap.remove(fileName);
+		}
+	}
+	
+	private class ZinPrivate{
+		private void hmm() throws Exception{
 		}
 	}
 }
