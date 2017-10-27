@@ -30,7 +30,7 @@ import zin.tools.ZinConstant.OperatingSystem;
 
 /**
  * Bug
- * 	-getBytesOfFile doesn't work for large file having more bytes than Integer.MAX_VALUE
+ * 	-getBytesOfFile doesn't work for large zinFile having more bytes than Integer.MAX_VALUE
  * 	-close FileInputStream
  * @author anurag.awasthi
  *
@@ -42,7 +42,7 @@ public class ZinFile {
 	
 	private ZinFileService zinFileService;
 	// for every fileName, a fileAppender
-	// cuz when appending to a file, I don't wanna open and close a file again and again 
+	// cuz when appending to a zinFile, I don't wanna open and close a zinFile again and again 
 	private static Map<String, FileAppender> fileAppenderMap;
 	
 	private final ZinPrivate zinPrivate;
@@ -60,7 +60,7 @@ public class ZinFile {
 	/**
 	 * <pre>
 	 * </pre>
-	 * @param fileName : file should be written in a properties file format
+	 * @param fileName : zinFile should be written in a properties zinFile format
 	 * @return
 	 * @throws Exception
 	 */
@@ -130,7 +130,7 @@ public class ZinFile {
 	}
 	/**
 	 * <pre>
-	 * It returns null if file doesn't exist in classpath nor in absolute path
+	 * It returns null if zinFile doesn't exist in classpath nor in absolute path
 	 * </pre>
 	 * @param fileName
 	 * @param encoding
@@ -184,6 +184,11 @@ public class ZinFile {
 		zinFileService.write(getFileIfDoesNotexistCreateIt(fileName), toWrite, encoding);
 	}
 
+	public boolean fileExists(String fileName) throws Exception{
+		// Probably when a file is in use it returns true as well. Bug
+		return getFileFromFileName(fileName) == null;
+	}
+	
 	public void createFile(String filePathRelativeOrAbsolute) throws IOException{
 		zinFileService.createFile(filePathRelativeOrAbsolute);
 	}
@@ -191,7 +196,7 @@ public class ZinFile {
 	/**
 	 * <pre>
 	 * Call this method many times
-	 * but in the end call saveAppendedFile to save the file
+	 * but in the end call saveAppendedFile to save the zinFile
 	 * </pre>
 	 * @param fileName 
 	 * @param toWrite
@@ -207,9 +212,9 @@ public class ZinFile {
 	/**
 	 * <pre>
 	 * Call this method many times
-	 * but in the end call saveAppendedFile to save the file
+	 * but in the end call saveAppendedFile to save the zinFile
 	 * </pre>
-	 * but in the end call saveAppendedFile to save the file
+	 * but in the end call saveAppendedFile to save the zinFile
 	 * @param fileName
 	 * @param toWrite
 	 * @throws Exception
@@ -220,8 +225,8 @@ public class ZinFile {
 	
 	/**
 	 * <pre>
-	 * This method MUST be called after you're done appending to a file
-	 * So file can be saved, otherwise File won't be saved
+	 * This method MUST be called after you're done appending to a zinFile
+	 * So zinFile can be saved, otherwise File won't be saved
 	 * </pre>
 	 * @param fileName
 	 * @throws Exception
@@ -235,7 +240,7 @@ public class ZinFile {
 	
 	/**
 	 * <pre>
-	 * Use this method when you have to append the file only once
+	 * Use this method when you have to append the zinFile only once
 	 * </pre>
 	 * @param fileName
 	 * @param toWrite
@@ -255,9 +260,9 @@ public class ZinFile {
 	
 	/**
 	 * <pre>
-	 * It'll first try to get file from absolute path
+	 * It'll first try to get zinFile from absolute path
 	 * If fails it will look for relative path in all classpaths
-	 * If fails to get file from classpaths as well, it returns null
+	 * If fails to get zinFile from classpaths as well, it returns null
 	 * </pre>
 	 * @param filePathRelativeOrAbsolute
 	 * @return
@@ -413,7 +418,7 @@ public class ZinFile {
 			 * hence I used 
 			 * 		f.getAbsoluteFile().exists()
 			 * 		f.getCanonicalFile().exists()
-			 * it returned false in both cases, probably because file was open.
+			 * it returned false in both cases, probably because zinFile was open.
 			 * 	RCA-Unknown as of yet
 			 */
 			if(f.getAbsoluteFile().exists())
@@ -450,7 +455,7 @@ public class ZinFile {
 		public void closeWriters() throws Exception{
 			// Close them in this order only
 			// if you close the fileWriter, printWriter will become null
-			// AND file will NOT BE saved
+			// AND zinFile will NOT BE saved
 			if(printWriter!= null) printWriter.close();
 			if(bufferedWriter!=null) bufferedWriter.close();
 			if(fileWriter!=null) fileWriter.close();
